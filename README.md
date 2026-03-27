@@ -1,16 +1,56 @@
-# React + Vite
+# 📚 Basic Study - YDT Study Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, local-first academic study tracking application designed specifically for students preparing for the YDT (Foreign Language Test) and other academic goals.
 
-Currently, two official plugins are available:
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)
+![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
 
-## React Compiler
+- **📊 Smart Dashboard**: Real-time overview of your study progress and upcoming exams.
+- **📅 Weekly Planner**: Drag-and-drop study planning with course-specific time allocation.
+- **⏱️ Focus Timer**: Built-in study session timer to track your focus hours.
+- **📚 Course Management**: Organize your courses with custom colors, emojis, and exam dates.
+- **📈 Advanced Statistics**: Detailed analysis of your study habits and course performance.
+- **🔒 Local-First**: All your data is stored securely in your browser's IndexedDB using Dexie.js.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend**: [React 19](https://reactjs.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB wrapper)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Components**: [shadcn/ui](https://ui.shadcn.com/)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🛠️ Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/suleymanaslim/basic_study.git
+   ```
+
+2. **Navigate to the project directory**:
+   ```bash
+   cd basic-study
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+Built with ❤️ for better study habits.
