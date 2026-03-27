@@ -1,4 +1,4 @@
-# 📚 Basic Study - YDT Study Tracker
+# 📚 Basic Study 
 
 A modern, local-first academic study tracking application designed specifically for students preparing for the YDT (Foreign Language Test) and other academic goals.
 
