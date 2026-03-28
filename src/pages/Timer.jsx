@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,54 +15,34 @@ import { Play, Pause, Square, RotateCcw, Clock, Target, PlusCircle } from 'lucid
 import * as Icons from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-
-const POMODORO_MODES = {
-  FREE: { id: 'FREE', name: 'Serbest Çalışma', duration: 0, break: 0 },
-  POMO_25: { id: 'POMO_25', name: 'Pomodoro (25dk Çalış, 5dk Mola)', duration: 25 * 60, break: 5 * 60 },
-  POMO_50: { id: 'POMO_50', name: 'Uzun Pomodoro (50dk Çalış, 10dk Mola)', duration: 50 * 60, break: 10 * 60 },
-};
-
-function formatTime(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-}
+import { useTimer, POMODORO_MODES } from '@/contexts/TimerContext';
 
 export default function TimerPage() {
   const [searchParams] = useSearchParams();
   const initCourseId = searchParams.get('course') || '';
 
+  const {
+    selectedCourseId, setSelectedCourseId,
+    timerMode, setTimerMode,
+    elapsed, setElapsed,
+    sessionTotalTime,
+    isRunning,
+    phase,
+    savedMessage, setSavedMessage,
+    handleStart, handlePause, handleStop, handleReset,
+    formatTime,
+    currentMode,
+  } = useTimer();
+
   const courses = useLiveQuery(() => db.courses.toArray()) || [];
-  const [selectedCourseId, setSelectedCourseId] = useState(initCourseId);
-  const [timerMode, setTimerMode] = useState('FREE'); // FREE, POMO_25, POMO_50
-
-  const [elapsed, setElapsed] = useState(0); // If Free, tracks total. If Pomo, tracks elapsed within phase
-  const [sessionTotalTime, setSessionTotalTime] = useState(0); // Total time studied across all phases (only work time)
-
-  const [isRunning, setIsRunning] = useState(false);
-  const [phase, setPhase] = useState('WORK'); // WORK or BREAK (only applies if not FREE)
-  const [startTime, setStartTime] = useState(null);
-  const [savedMessage, setSavedMessage] = useState('');
-
-  const intervalRef = useRef(null);
-  const audioRef = useRef(null);
 
   useEffect(() => {
-    // Create audio context only when needed to bypass browser autoplay rules
-    audioRef.current = new Audio('/sounds/alert.mp3');
-  }, []);
-
-  const playAlert = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(e => console.log('Audio play disabled by browser:', e));
+    if (initCourseId && !selectedCourseId) {
+      setSelectedCourseId(initCourseId);
     }
-  };
+  }, [initCourseId, selectedCourseId, setSelectedCourseId]);
 
   const selectedCourse = courses.find((c) => c.id === Number(selectedCourseId));
-  const currentMode = POMODORO_MODES[timerMode];
 
   // Document Title Effect
   useEffect(() => {
@@ -78,90 +58,16 @@ export default function TimerPage() {
       const phaseIcon = phase === 'WORK' ? '👨‍💻' : '☕';
       document.title = `${phaseIcon} ${formatTime(remaining)} | ${selectedCourse?.name || ''}`;
     }
-  }, [elapsed, isRunning, timerMode, phase, selectedCourse, currentMode]);
+  }, [elapsed, isRunning, timerMode, phase, selectedCourse, currentMode, formatTime]);
 
-  const tick = useCallback(() => {
-    setElapsed((prev) => {
-      const next = prev + 1;
-
-      // Handle Pomodoro transition logic inside setState to use exact values
-      if (timerMode !== 'FREE') {
-        const limit = phase === 'WORK' ? currentMode.duration : currentMode.break;
-        if (next >= limit) {
-          playAlert();
-          if (phase === 'WORK') {
-            setSessionTotalTime(total => total + limit);
-            setPhase('BREAK');
-            return 0;
-          } else {
-            setPhase('WORK');
-            return 0; // Auto-start next work phase or stop? Let's auto-continue for flow
-          }
-        }
-      } else {
-        if (phase === 'WORK') setSessionTotalTime(t => t + 1);
-      }
-      return next;
-    });
-  }, [timerMode, phase, currentMode]);
-
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(tick, 1000);
-    } else {
-      clearInterval(intervalRef.current);
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [isRunning, tick]);
-
-  const handleStart = () => {
-    if (!selectedCourseId) return;
-    if (elapsed === 0 && sessionTotalTime === 0) {
-      setStartTime(new Date().toISOString());
-    }
-    setIsRunning(true);
-    setSavedMessage('');
-  };
-
-  const handlePause = () => {
-    setIsRunning(false);
-  };
-
-  const handleStop = async () => {
-    const finalTotal = sessionTotalTime + (phase === 'WORK' && timerMode !== 'FREE' ? elapsed : (timerMode === 'FREE' ? elapsed : 0));
-
-    if (finalTotal < 10) {
-      handleReset();
-      return;
-    }
-
-    setIsRunning(false);
-
-    await db.studySessions.add({
-      courseId: Number(selectedCourseId),
-      duration: finalTotal, // Save ONLY work duration
-      startedAt: startTime,
-      endedAt: new Date().toISOString(),
-    });
-
-    setSavedMessage(`${selectedCourse?.name} — ${formatTime(finalTotal)} çalışma kaydedildi.`);
-    handleReset(true);
-  };
-
-  const handleReset = (keepMessage = false) => {
-    setIsRunning(false);
-    setElapsed(0);
-    setSessionTotalTime(0);
-    setStartTime(null);
-    setPhase('WORK');
-    if (!keepMessage) setSavedMessage('');
+  const onStop = () => {
+    handleStop(selectedCourse?.name);
   };
 
   const addOneHourTest = () => {
     if (timerMode === 'FREE') {
       setElapsed(prev => prev + 3600);
     } else {
-      // Just visually fast forward through a phase for testing
       setElapsed(prev => prev + 60);
     }
   };
@@ -169,7 +75,7 @@ export default function TimerPage() {
   // UI Calculation
   const isBreak = phase === 'BREAK';
   const showCountdown = timerMode !== 'FREE';
-  const targetTime = showCountdown ? (isBreak ? currentMode.break : currentMode.duration) : 3600 * 12; // Free mode fills up over 12 hours
+  const targetTime = showCountdown ? (isBreak ? currentMode.break : currentMode.duration) : 3600 * 12;
 
   const displayTime = showCountdown ? Math.max(0, targetTime - elapsed) : elapsed;
   const radius = 135;
@@ -181,7 +87,7 @@ export default function TimerPage() {
     : circumference * (1 - progressPercent);
 
   const ringColor = isBreak
-    ? 'oklch(0.7 0.15 140)' // Green for break 
+    ? 'oklch(0.7 0.15 140)'
     : (selectedCourse?.color || 'var(--primary)');
 
   const IconComp = Icons[selectedCourse?.icon || 'Book'] || Icons.Book;
@@ -351,7 +257,7 @@ export default function TimerPage() {
                 )}
 
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" variant="destructive" className="h-14 w-14 rounded-full p-0 shadow-sm" onClick={handleStop} disabled={elapsed === 0 && sessionTotalTime === 0}>
+                  <Button size="lg" variant="destructive" className="h-14 w-14 rounded-full p-0 shadow-sm" onClick={onStop} disabled={elapsed === 0 && sessionTotalTime === 0}>
                     <Square className="h-5 w-5" />
                   </Button>
                 </motion.div>
